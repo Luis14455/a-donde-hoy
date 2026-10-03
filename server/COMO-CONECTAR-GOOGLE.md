@@ -22,7 +22,7 @@ El archivo `worker.js` de esta carpeta es el servidor. Guarda la clave en secret
 1. Crea una cuenta gratis en https://dash.cloudflare.com.
 2. Ve a "Workers y Pages" → "Crear" → "Crear Worker", llámalo `adondehoy`, y pega el contenido de `worker.js`.
 3. En la configuración del Worker → "Variables y secretos", agrega el secreto `GOOGLE_PLACES_KEY` con tu clave.
-4. Cuando la página web esté publicada, agrega la variable `ALLOWED_ORIGIN` con su dirección (por ejemplo `https://adondehoy.netlify.app`).
+4. Cuando la página web esté publicada, agrega la variable `ALLOWED_ORIGIN` con su dirección : `https://luis14455.github.io`.
 5. Copia la dirección del Worker, algo como `https://adondehoy.TU-USUARIO.workers.dev`.
 
 ## Paso 3: conectar la app
