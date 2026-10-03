@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>A Donde Hoy</title>
+<meta name="description" content="Te decimos a dónde ir a comer cerca de ti, en segundos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: app de una columna. Arriba la recomendación del momento y dos alternativas; luego Sorpréndeme, filtros, mapa y lista completa. */
+:root{
+  --bg:#F4F6F3; --surface:#FFFFFF; --ink:#1C1A2B; --muted:#5E6470; --line:#DCE1DA;
+  --accent:#E8A100; --accent-ink:#2A1F00; --teal:#0F7C74; --chip:#E9EDE7;
+  --open:#1E8A4C; --closed:#B4372B; --star:#C98A00;
+  --c-rest:#0F7C74; --c-fast:#D2552B; --c-cafe:#8A5A2B; --c-bar:#6B4BB8;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13151A; --surface:#1C1F26; --ink:#EEF0EA; --muted:#A3A9B3; --line:#2D323B;
+  --accent:#F5B82E; --accent-ink:#231900; --teal:#3DBBAE; --chip:#262A32;
+  --open:#4CC984; --closed:#F07A6A; --star:#F5B82E;
+  --c-rest:#3DBBAE; --c-fast:#F07A50; --c-cafe:#C99460; --c-bar:#A58BEA; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13151A; --surface:#1C1F26; --ink:#EEF0EA; --muted:#A3A9B3; --line:#2D323B;
+  --accent:#F5B82E; --accent-ink:#231900; --teal:#3DBBAE; --chip:#262A32;
+  --open:#4CC984; --closed:#F07A6A; --star:#F5B82E;
+  --c-rest:#3DBBAE; --c-fast:#F07A50; --c-cafe:#C99460; --c-bar:#A58BEA; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;margin:0}
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:18px 48px;display:flex;flex-direction:column;gap:18px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,7.5vw,38px);letter-spacing:-.02em;line-height:1;margin:0}
+h1 span{color:var(--accent)}
+h2{font-family:var(--display);font-weight:800;font-size:20px;margin:0;letter-spacing:-.01em}
+.where{display:flex;flex-direction:column;gap:10px}
+.loc{color:var(--muted);font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.loc b{color:var(--ink);font-weight:600}
+.badge{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--chip);color:var(--muted)}
+.badge.live{background:var(--teal);color:var(--surface)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select,button{font:inherit;color:inherit}
+.search{flex:1 1 200px;min-width:0;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.btn{padding:11px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;cursor:pointer;text-decoration:none;color:var(--ink);display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.wa{background:var(--open);border-color:var(--open);color:var(--surface)}
+.btn:focus-visible,.chip:focus-visible,.search:focus-visible,select:focus-visible,a:focus-visible,.alt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.notice{font-size:13px;color:var(--muted);background:var(--chip);border-radius:12px;padding:10px 12px}
+
+/* Recomendación principal */
+.pick{display:flex;flex-direction:column;gap:10px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.hero{background:var(--surface);border:2px solid var(--accent);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.hero h3{font-family:var(--display);font-weight:800;font-size:clamp(24px,6.5vw,30px);line-height:1.05;margin:0;letter-spacing:-.015em;overflow-wrap:anywhere;text-wrap:balance}
+.facts{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--muted);align-items:center}
+.facts b{color:var(--ink)}
+.stars{color:var(--star);font-weight:700}
+.open{color:var(--open);font-weight:700}
+.closed{color:var(--closed);font-weight:700}
+.why{font-size:15px;background:var(--chip);border-radius:12px;padding:10px 12px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.alts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:420px){.alts{grid-template-columns:1fr}}
+.alt{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-width:0}
+.alt strong{font-size:16px;overflow-wrap:anywhere}
+.alt span{font-size:13px;color:var(--muted)}
+.alt .tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--teal)}
+
+/* Sorpréndeme */
+.surprise{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-radius:18px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer;text-align:left;width:100%}
+.surprise strong{font-family:var(--display);font-size:22px;font-weight:800;display:block;line-height:1.1}
+.surprise small{font-size:13px;opacity:.85}
+.dice{font-family:var(--display);font-size:30px;font-weight:800}
+.finalists{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px}
+.finalists ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:480px){.finalists ol{grid-template-columns:1fr}}
+.finalists li button{width:100%;height:100%;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.finalists li button:hover{border-color:var(--accent)}
+.finalists li strong{font-size:15px;overflow-wrap:anywhere}
+.finalists li span{font-size:13px;color:var(--muted)}
+
+/* Filtros */
+.filters{display:flex;flex-direction:column;gap:10px}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-size:14px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+select{padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);max-width:100%}
+details.more{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+details.more summary{cursor:pointer;font-weight:600}
+details.more[open] summary{margin-bottom:12px}
+
+.radar{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:10px}
+.radar svg{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:1/1;max-height:360px;margin:0 auto}
+.radar .cap{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);padding:2px 6px 0;flex-wrap:wrap}
+.count{font-size:14px;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:10px;list-style:none;margin:0;padding:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:start;scroll-margin-top:16px}
+.card.hl{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 35%,transparent)}
+.card .pin{width:12px;height:12px;border-radius:50%;margin-top:6px}
+.card h3{margin:0;font-size:16px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.card .meta{grid-column:2/3;color:var(--muted);font-size:13px;min-width:0;overflow-wrap:anywhere}
+.card .dist{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:15px;white-space:nowrap}
+.card .dist small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.card .go{grid-column:2/4;display:flex;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:14px}
+.card a{color:var(--teal);font-weight:600;text-decoration:none}
+.card a:hover{text-decoration:underline}
+.empty{padding:24px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:16px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+footer{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+footer a{color:inherit}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="where">
+    <h1>¿A dónde <span>hoy</span>?</h1>
+    <div class="loc" id="loc"></div>
+    <form class="row" id="addrForm" autocomplete="off">
+      <input class="search" id="addr" type="search" placeholder="Escribe una dirección o ciudad" aria-label="Dirección o ciudad">
+      <button class="btn" type="submit">Buscar</button>
+      <button class="btn primary" type="button" id="geoBtn">Usar mi ubicación</button>
+    </form>
+    <div class="notice" id="notice" hidden></div>
+  </header>
+
+  <section class="pick" aria-live="polite">
+    <div class="eyebrow" id="pickTitle">Te recomendamos</div>
+    <div id="hero"></div>
+    <div class="alts" id="alts"></div>
+  </section>
+
+  <button class="surprise" id="surprise" type="button">
+    <span><strong>Sorpréndeme</strong><small>Te damos 3 finalistas y tú eliges</small></span>
+    <span class="dice" aria-hidden="true">⚄</span>
+  </button>
+  <section class="finalists" id="finalists" hidden aria-live="polite">
+    <div class="row" style="justify-content:space-between"><h2>Elige uno</h2><button type="button" class="btn" id="again">Otros 3</button></div>
+    <ol id="finalList"></ol>
+  </section>
+
+  <section class="filters" aria-label="Filtros">
+    <div class="label">Distancia</div>
+    <div class="chips" id="radiusChips"></div>
+    <div class="label">Qué buscas</div>
+    <div class="chips" id="flagChips"></div>
+    <details class="more" id="more">
+      <summary>Más filtros</summary>
+      <div class="filters">
+        <div class="label">Precio</div>
+        <div class="chips" id="priceChips"></div>
+        <div class="label">Tipo de lugar</div>
+        <div class="chips" id="typeChips"></div>
+        <div class="row">
+          <select id="cuisine" aria-label="Tipo de cocina"><option value="">Cualquier cocina</option></select>
+          <input class="search" id="q" type="search" placeholder="Buscar por nombre" aria-label="Buscar por nombre">
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="radar" aria-label="Mapa de cercanía">
+    <svg id="map" viewBox="-110 -110 220 220" role="img" aria-label="Tu ubicación al centro y los lugares alrededor"></svg>
+    <div class="cap"><span>Tú estás al centro · arriba es el norte</span><span id="scale"></span></div>
+  </section>
+
+  <h2>Todos los lugares</h2>
+  <div class="count" id="count"></div>
+  <ul class="list" id="list"></ul>
+
+  <footer id="credits"></footer>
+</div>
+
+<script>
+(function(){
+/* ===== Configuración =====
+   placesEndpoint: dirección del servidor que consulta Google Places (ver /mnt/project-files/app/server/worker.js).
+   Vacío = se usa OpenStreetMap (gratis, sin calificaciones). */
+const CONFIG = { placesEndpoint: "" };
+
+const TYPES = {
+  restaurant:{label:"Restaurante", color:"--c-rest"},
+  fast_food:{label:"Comida rápida", color:"--c-fast"},
+  cafe:{label:"Café", color:"--c-cafe"},
+  bar:{label:"Bar", color:"--c-bar"}
+};
+const TYPE_ALIAS = {pub:"bar", biergarten:"bar", food_court:"fast_food", ice_cream:"cafe"};
+const CUISINES = {mexican:"Mexicana",tacos:"Tacos",taco:"Tacos",pizza:"Pizza",italian:"Italiana",sushi:"Sushi",japanese:"Japonesa",ramen:"Ramen",chinese:"China",burger:"Hamburguesas",chicken:"Pollo",coffee_shop:"Café",seafood:"Mariscos",regional:"Regional",international:"Internacional",american:"Americana",spanish:"Española",argentinian:"Argentina",peruvian:"Peruana",colombian:"Colombiana",venezuelan:"Venezolana",korean:"Coreana",thai:"Tailandesa",indian:"India",vegetarian:"Vegetariana",vegan:"Vegana",sandwich:"Sándwiches",steak_house:"Cortes",bakery:"Panadería",ice_cream:"Helados",breakfast:"Desayunos",french:"Francesa",mediterranean:"Mediterránea",lebanese:"Libanesa",cuban:"Cubana",asian:"Asiática",juice:"Jugos",donut:"Donas",kebab:"Kebab",fish:"Pescado"};
+const RADII = [500,1000,2000];
+const PRICES = {1:"$",2:"$$",3:"$$$",4:"$$$$"};
+const WALK = 75; // metros por minuto en calle
+
+/* Ejemplo: nombres, calificaciones y precios INVENTADOS alrededor de Roma Norte, CDMX.
+   Se usa solo cuando no hay ubicación ni internet (por ejemplo, dentro de Claude). */
+const DEMO_CENTER = {lat:19.4194, lon:-99.1617, name:"Roma Norte, CDMX"};
+// [nombre, tipo, cocina, metros al este, metros al norte, horario OSM, calificación, reseñas, nivel de precio, precio por persona MXN]
+const DEMO = [
+ ["Taquería La Esquina Feliz","fast_food","tacos",120,40,"Mo-Su 12:00-02:00",4.6,2140,1,"$90–150"],
+ ["Fonda Doña Chela","restaurant","mexican",-180,90,"Mo-Sa 08:00-18:00",4.7,860,1,"$120–180"],
+ ["Café Brújula","cafe","coffee_shop",60,-150,"Mo-Su 07:30-21:00",4.5,1320,2,"$100–200"],
+ ["Pizzería Horno de Barro","restaurant","pizza",260,-210,"Tu-Su 13:00-23:00",4.4,990,2,"$220–350"],
+ ["Mariscos El Puerto Chico","restaurant","seafood",-320,-160,"Mo-Su 11:00-19:00",4.6,1510,2,"$250–400"],
+ ["Ramen Kaze","restaurant","ramen",400,150,"Mo-Su 13:00-22:30",4.8,640,2,"$250–380"],
+ ["Tortas Don Memo","fast_food","sandwich",-90,-330,"Mo-Sa 09:00-17:00",4.3,410,1,"$70–120"],
+ ["Bar La Terraza Alta","bar","",350,380,"We-Sa 18:00-02:00",4.2,730,3,"$350–600"],
+ ["Panadería Masa Madre","cafe","bakery",-430,240,"Mo-Su 07:00-20:00",4.7,1880,2,"$80–160"],
+ ["Sushi Nori Bar","restaurant","sushi",520,-60,"Mo-Su 13:00-23:00",4.1,520,3,"$400–650"],
+ ["Pollos Asados El Güero","fast_food","chicken",-560,-40,"Mo-Su 10:00-18:00",4.4,300,1,"$90–140"],
+ ["Cocina Oaxaqueña Siete Moles","restaurant","regional",210,560,"Tu-Su 13:00-21:00",4.8,1240,2,"$280–420"],
+ ["Hamburguesas La Plancha","fast_food","burger",-250,520,"Mo-Su 13:00-23:30",4.3,880,2,"$160–250"],
+ ["Trattoria Nonna Lucía","restaurant","italian",640,320,"Mo-Su 13:00-23:00",4.5,1050,3,"$380–600"],
+ ["Café de Olla 1910","cafe","coffee_shop",-690,-300,"Mo-Su 08:00-22:00",4.4,700,1,"$60–120"],
+ ["Cantina El Recreo","bar","mexican",-720,350,"Mo-Sa 13:00-01:00",4.5,2300,2,"$250–400"],
+ ["Jugos y Licuados La Huerta","cafe","juice",30,-720,"Mo-Sa 07:00-15:00",4.6,260,1,"$50–90"],
+ ["Restaurante Vegetal","restaurant","vegan",820,-420,"Mo-Su 09:00-21:00",4.6,940,2,"$200–320"],
+ ["Antojitos Doña Mary","fast_food","mexican",-880,-560,"Mo-Su 18:00-23:30",4.7,1600,1,"$60–120"],
+ ["Parrilla Argentina El Gaucho","restaurant","argentinian",1100,250,"Tu-Su 13:00-23:00",4.5,1150,4,"$600–900"],
+ ["Comida Coreana Seúl","restaurant","korean",-1200,180,"Mo-Su 12:30-22:00",4.6,830,2,"$250–380"],
+ ["Taquería Los Compadres","fast_food","tacos",450,-1150,"Mo-Su 19:00-03:00",4.8,3100,1,"$80–140"],
+ ["Cevichería Lima","restaurant","peruvian",-500,1300,"Tu-Su 13:00-19:00",4.7,690,3,"$350–550"],
+ ["Café Literario","cafe","coffee_shop",1350,-900,"Mo-Sa 09:00-21:00",4.3,450,2,"$90–180"],
+ ["Mezcalería Agave","bar","",-1500,-700,"Th-Sa 19:00-02:30",4.4,600,3,"$300–500"],
+ ["Pozolería La Guerrerense","restaurant","mexican",900,1350,"Mo-Su 09:00-18:00",4.7,2050,1,"$130–200"]
+];
+
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function store(k,v){try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v);}catch(e){return null}}
+
+const state = {center:null, places:[], live:false, source:"demo", radius:1000,
+  openOnly:true, topRated:false, prices:new Set([1,2,3,4]), types:new Set(Object.keys(TYPES)),
+  cuisine:"", q:"", highlight:null, chosen:null, finalists:[]};
+const savedR = parseInt(store("adh.radius"),10); if(RADII.includes(savedR)) state.radius = savedR;
+
+/* ===== Utilidades de distancia y formato ===== */
+function metersBetween(a,b){
+  const R=6371000, toR=Math.PI/180, dLat=(b.lat-a.lat)*toR, dLon=(b.lon-a.lon)*toR;
+  const s=Math.sin(dLat/2)**2+Math.cos(a.lat*toR)*Math.cos(b.lat*toR)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+function offsetToLatLon(c,east,north){ return {lat:c.lat+north/110540, lon:c.lon+east/(111320*Math.cos(c.lat*Math.PI/180))}; }
+function cuisineList(raw){
+  if(!raw) return [];
+  return raw.split(/[;,]/).map(s=>s.trim()).filter(Boolean)
+    .map(k => CUISINES[k.toLowerCase()] || (k.charAt(0).toUpperCase()+k.slice(1)).replace(/_/g," "));
+}
+const fmtDist = m => m<1000 ? Math.round(m/10)*10+" m" : (m/1000).toFixed(1).replace(".",",")+" km";
+const walkMin = m => Math.max(1,Math.round(m*1.3/WALK));
+const fmtWalk = m => { const n=walkMin(m); return n<60? n+" min a pie" : Math.floor(n/60)+" h "+(n%60)+" min a pie"; };
+const fmtCount = n => n>=1000 ? (n/1000).toFixed(1).replace(".0","").replace(".",",")+" mil" : String(n);
+
+/* ===== Horario: entiende el formato de OpenStreetMap más común =====
+   "24/7", "Mo-Fr 08:00-18:00; Sa 09:00-14:00", "Mo-Su 12:00-15:00,19:00-02:00", "Su off".
+   Devuelve {open:true|false|null, until:"HH:MM"|null, opens:"HH:MM"|null}. null = no sabemos. */
+const DAYS = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+function parseDays(spec){
+  if(!spec) return [0,1,2,3,4,5,6];
+  const out = new Set();
+  for(const part of spec.split(",")){
+    const m = part.trim().match(/^(Mo|Tu|We|Th|Fr|Sa|Su)(?:-(Mo|Tu|We|Th|Fr|Sa|Su))?$/);
+    if(!m) return null;
+    let a = DAYS.indexOf(m[1]), b = m[2]? DAYS.indexOf(m[2]) : a;
+    for(let i=a;;i=(i+1)%7){ out.add(i); if(i===b) break; }
+  }
+  return [...out];
+}
+function parseHours(str){
+  if(!str) return null;
+  const s = str.trim();
+  if(s==="24/7") return {all:true};
+  const week = Array.from({length:7},()=>null); // null = sin regla
+  for(const raw of s.split(";")){
+    const rule = raw.trim(); if(!rule) continue;
+    const m = rule.match(/^((?:(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:-(?:Mo|Tu|We|Th|Fr|Sa|Su))?)(?:,(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:-(?:Mo|Tu|We|Th|Fr|Sa|Su))?)*)?\s*(.*)$/);
+    if(!m) return null;
+    const days = parseDays(m[1]); if(!days) return null;
+    const t = m[2].trim();
+    let ranges;
+    if(/^(off|closed)$/i.test(t)) ranges = [];
+    else {
+      ranges = [];
+      for(const r of t.split(",")){
+        const mm = r.trim().match(/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})\+?$/);
+        if(!mm) return null;
+        const a = (+mm[1])*60+(+mm[2]); let b = (+mm[3])*60+(+mm[4]);
+        if(b<=a) b += 1440; // cruza la medianoche
+        ranges.push([a,b]);
+      }
+    }
+    days.forEach(d=>week[d]=ranges);
+  }
+  return {week};
+}
+const hhmm = m => { m=((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); };
+function openState(parsed, now){
+  if(!parsed) return {open:null};
+  if(parsed.all) return {open:true, until:null, allDay:true};
+  const d = (now.getDay()+6)%7, mins = now.getHours()*60+now.getMinutes();
+  const today = parsed.week[d], yest = parsed.week[(d+6)%7];
+  for(const [a,b] of (yest||[])) if(b>1440 && mins < b-1440) return {open:true, until:hhmm(b)};
+  for(const [a,b] of (today||[])) if(mins>=a && mins<b) return {open:true, until:hhmm(b)};
+  if(today===null && parsed.week.every(x=>x===null)) return {open:null};
+  const next = (today||[]).map(r=>r[0]).filter(a=>a>mins).sort((x,y)=>x-y)[0];
+  return {open:false, opens: next!=null? hhmm(next) : null};
+}
+
+/* ===== Puntuación: calidad (calificación con muchas reseñas pesa más) + cercanía ===== */
+function quality(p){
+  if(p.rating==null) return null;
+  const m = 80, C = 4.2, v = p.ratingCount||0;
+  const bayes = (v*p.rating + m*C)/(v+m);
+  return Math.min(1, Math.max(0, (bayes-3.6)/1.2));
+}
+function score(p){
+  const q = quality(p), near = 1 - Math.min(1, p.dist/state.radius);
+  const base = q==null ? 0.5*near + 0.15*(p.cuisines.length?1:0) + 0.1*(p.hours?1:0) : 0.68*q + 0.32*near;
+  const o = p.os.open;
+  return base - (o===null ? 0.08 : 0);
+}
+function whyLine(p){
+  const bits = [];
+  if(p.rating!=null){
+    if(p.rating>=4.6 && p.ratingCount>=300) bits.push(`de los mejor calificados de la zona (${p.rating.toFixed(1)} con ${fmtCount(p.ratingCount)} reseñas)`);
+    else bits.push(`buena calificación (${p.rating.toFixed(1)})`);
+  }
+  bits.push(`a ${walkMin(p.dist)} min caminando`);
+  if(p.os.open && p.os.until) bits.push(`abierto hasta las ${p.os.until}`);
+  else if(p.os.open && p.os.allDay) bits.push("abierto las 24 horas");
+  if(p.priceLevel===1) bits.push("económico");
+  const s = bits.join(", ");
+  return s.charAt(0).toUpperCase()+s.slice(1)+".";
+}
+function mealTitle(){
+  const h = new Date().getHours();
+  if(h>=5 && h<12) return "Para desayunar, te recomendamos";
+  if(h>=12 && h<18) return "Para comer, te recomendamos";
+  if(h>=18 && h<23) return "Para cenar, te recomendamos";
+  return "Para el antojo de noche, te recomendamos";
+}
+
+/* ===== Datos ===== */
+function setPlaces(center, places, source){
+  const now = new Date();
+  state.center = center; state.source = source; state.live = source!=="demo";
+  state.places = places.map(p=>{
+    const cuisines = Array.isArray(p.cuisines) ? p.cuisines : cuisineList(p.cuisine);
+    const os = p.openNow!=null ? {open:p.openNow, until:null} : openState(parseHours(p.hours), now);
+    return {...p, cuisines, os, dist:metersBetween(center,p)};
+  }).sort((a,b)=>a.dist-b.dist);
+  state.highlight = null; state.chosen = null; state.finalists = []; $("finalists").hidden = true;
+  buildCuisineOptions(); render();
+}
+function loadDemo(){
+  setPlaces(DEMO_CENTER, DEMO.map(([name,type,cuisine,e,n,hours,rating,ratingCount,priceLevel,priceText],i)=>
+    ({id:"d"+i,name,type,cuisine,hours,rating,ratingCount,priceLevel,priceText,...offsetToLatLon(DEMO_CENTER,e,n)})), "demo");
+  setLoc(`<span class="badge">Ejemplo</span><span>Lugares y calificaciones inventados en <b>${esc(DEMO_CENTER.name)}</b></span>`);
+}
+function setLoc(html){ $("loc").innerHTML = html; }
+function notice(msg){ const n=$("notice"); n.hidden=!msg; n.textContent = msg||""; }
+
+const OVERPASS = ["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
+async function fetchWithTimeout(url, opts={}, ms=20000){
+  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), ms);
+  try{ return await fetch(url,{...opts, signal:ctrl.signal}); } finally { clearTimeout(t); }
+}
+async function fetchOSM(c){
+  const q = `[out:json][timeout:25];(nwr["amenity"~"^(restaurant|fast_food|cafe|bar|pub|biergarten|food_court|ice_cream)$"]["name"](around:2000,${c.lat},${c.lon}););out center tags 400;`;
+  let lastErr;
+  for(const url of OVERPASS){
+    try{
+      const res = await fetchWithTimeout(url,{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}});
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const j = await res.json();
+      return j.elements.map(el=>{
+        const t = el.tags||{}, lat = el.lat ?? el.center?.lat, lon = el.lon ?? el.center?.lon;
+        const type = TYPE_ALIAS[t.amenity] || t.amenity;
+        if(!TYPES[type] || lat==null) return null;
+        return {id:el.type+el.id, name:t.name, type, cuisine:t.cuisine||"", hours:t.opening_hours||"", lat, lon,
+          street:[t["addr:street"],t["addr:housenumber"]].filter(Boolean).join(" "),
+          phone:t.phone||t["contact:phone"]||"", web:t.website||t["contact:website"]||"", rating:null};
+      }).filter(Boolean);
+    }catch(e){ lastErr=e; }
+  }
+  throw lastErr||new Error("sin respuesta");
+}
+async function fetchGoogle(c){
+  const url = `${CONFIG.placesEndpoint.replace(/\/$/,"")}/nearby?lat=${c.lat}&lon=${c.lon}&radius=2000`;
+  const res = await fetchWithTimeout(url);
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const j = await res.json();
+  return j.places;
+}
+async function goLive(c,label){
+  setLoc(`<span class="spin" aria-hidden="true"></span><span>Buscando lugares cerca de <b>${esc(label)}</b>…</span>`);
+  notice("");
+  try{
+    let places, source;
+    if(CONFIG.placesEndpoint){
+      try{ places = await fetchGoogle(c); source = "google"; }
+      catch(e){ places = await fetchOSM(c); source = "osm"; }
+    } else { places = await fetchOSM(c); source = "osm"; }
+    setPlaces(c, places, source);
+    setLoc(`<span class="badge live">En vivo</span><span>Cerca de <b>${esc(label)}</b></span>`);
+    if(!places.length) notice("No encontramos lugares registrados a 2 km. Prueba otra dirección.");
+  }catch(e){
+    loadDemo();
+    notice("No pudimos consultar lugares en este momento y seguimos mostrando el ejemplo. Dentro de Claude no hay acceso a internet ni a tu ubicación; abre la app desde su página web.");
+  }
+}
+function useGeo(auto){
+  if(!("geolocation" in navigator)){ if(!auto) notice("Tu navegador no comparte la ubicación. Escribe una dirección arriba."); return; }
+  if(!auto) setLoc(`<span class="spin" aria-hidden="true"></span><span>Obteniendo tu ubicación…</span>`);
+  navigator.geolocation.getCurrentPosition(
+    pos => goLive({lat:pos.coords.latitude, lon:pos.coords.longitude}, "tu ubicación"),
+    () => { if(!auto){ loadDemo(); notice("No tenemos permiso para ver tu ubicación. Actívalo en tu navegador o escribe una dirección arriba."); } },
+    {enableHighAccuracy:true, timeout:10000, maximumAge:60000}
+  );
+}
+async function geocode(text){
+  setLoc(`<span class="spin" aria-hidden="true"></span><span>Buscando <b>${esc(text)}</b>…</span>`);
+  try{
+    const res = await fetchWithTimeout("https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=es&q="+encodeURIComponent(text), {}, 12000);
+    const j = await res.json();
+    if(!j.length){ loadDemo(); notice("No encontramos esa dirección. Prueba con calle, colonia y ciudad."); return; }
+    goLive({lat:+j[0].lat, lon:+j[0].lon}, j[0].display_name.split(",").slice(0,2).join(","));
+  }catch(e){
+    loadDemo();
+    notice("No pudimos buscar la dirección ahora. Dentro de Claude no hay internet; abre la app desde su página web.");
+  }
+}
+
+/* ===== Filtros ===== */
+function filtered(){
+  const q = state.q.trim().toLowerCase();
+  return state.places.filter(p => p.dist<=state.radius && state.types.has(p.type)
+    && (!state.openOnly || p.os.open!==false)
+    && (!state.topRated || (p.rating!=null && p.rating>=4.5))
+    && (p.priceLevel==null || state.prices.has(p.priceLevel))
+    && (!state.cuisine || p.cuisines.includes(state.cuisine))
+    && (!q || p.name.toLowerCase().includes(q)));
+}
+function ranked(){ return filtered().map(p=>({p,s:score(p)})).sort((a,b)=>b.s-a.s).map(x=>x.p); }
+function buildChips(){
+  $("radiusChips").innerHTML = RADII.map(r=>`<button type="button" class="chip" data-r="${r}" aria-pressed="${r===state.radius}">${fmtDist(r)}</button>`).join("");
+  const hasRatings = state.places.some(p=>p.rating!=null);
+  $("flagChips").innerHTML = `<button type="button" class="chip" data-f="openOnly" aria-pressed="${state.openOnly}">Abierto ahora</button>`
+    + (hasRatings? `<button type="button" class="chip" data-f="topRated" aria-pressed="${state.topRated}">★ 4.5 o más</button>` : "");
+  $("priceChips").innerHTML = [1,2,3,4].map(l=>`<button type="button" class="chip" data-p="${l}" aria-pressed="${state.prices.has(l)}">${PRICES[l]}</button>`).join("");
+  $("typeChips").innerHTML = Object.entries(TYPES).map(([k,v])=>`<button type="button" class="chip" data-t="${k}" aria-pressed="${state.types.has(k)}"><span class="dot" style="background:var(${v.color})"></span>${v.label}</button>`).join("");
+}
+function buildCuisineOptions(){
+  const counts = {};
+  state.places.filter(p=>p.dist<=state.radius).forEach(p=>p.cuisines.forEach(c=>counts[c]=(counts[c]||0)+1));
+  if(state.cuisine && !counts[state.cuisine]) state.cuisine="";
+  $("cuisine").innerHTML = `<option value="">Cualquier cocina</option>` + Object.entries(counts).sort((a,b)=>b[1]-a[1])
+    .map(([c,n])=>`<option value="${esc(c)}"${c===state.cuisine?" selected":""}>${esc(c)} (${n})</option>`).join("");
+  buildChips();
+}
+function changed(){ state.chosen = null; state.finalists = []; $("finalists").hidden = true; render(); }
+$("radiusChips").addEventListener("click",e=>{const b=e.target.closest("[data-r]"); if(!b) return; state.radius=+b.dataset.r; store("adh.radius",String(state.radius)); buildCuisineOptions(); changed();});
+$("flagChips").addEventListener("click",e=>{const b=e.target.closest("[data-f]"); if(!b) return; state[b.dataset.f]=!state[b.dataset.f]; buildChips(); changed();});
+$("priceChips").addEventListener("click",e=>{const b=e.target.closest("[data-p]"); if(!b) return; const l=+b.dataset.p;
+  if(state.prices.has(l) && state.prices.size>1) state.prices.delete(l); else state.prices.add(l); buildChips(); changed();});
+$("typeChips").addEventListener("click",e=>{const b=e.target.closest("[data-t]"); if(!b) return; const t=b.dataset.t;
+  if(state.types.has(t) && state.types.size>1) state.types.delete(t); else state.types.add(t); buildChips(); changed();});
+$("cuisine").addEventListener("change",e=>{state.cuisine=e.target.value; changed();});
+$("q").addEventListener("input",e=>{state.q=e.target.value; changed();});
+$("geoBtn").addEventListener("click",()=>useGeo(false));
+$("addrForm").addEventListener("submit",e=>{e.preventDefault(); const v=$("addr").value.trim(); if(v) geocode(v);});
+
+/* ===== Sorpréndeme: 3 finalistas al azar entre los buenos ===== */
+function drawFinalists(){
+  const pool = ranked().slice(0, 15);
+  if(!pool.length){ notice("No hay lugares con estos filtros. Amplía la distancia o quita filtros."); return; }
+  const prev = new Set(state.finalists.map(p=>p.id));
+  let candidates = pool.filter(p=>!prev.has(p.id)); if(candidates.length<3) candidates = pool;
+  const picks = [];
+  while(picks.length<Math.min(3,candidates.length)){
+    const p = candidates[Math.floor(Math.random()*candidates.length)];
+    if(!picks.includes(p)) picks.push(p);
+  }
+  state.finalists = picks;
+  $("finalList").innerHTML = picks.map(p=>`<li><button type="button" data-choose="${esc(p.id)}">
+    <strong>${esc(p.name)}</strong><span>${esc(shortFacts(p))}</span><span>${fmtDist(p.dist)} · ${walkMin(p.dist)} min</span></button></li>`).join("");
+  $("finalists").hidden = false;
+  $("finalists").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"nearest"});
+}
+$("surprise").addEventListener("click",drawFinalists);
+$("again").addEventListener("click",drawFinalists);
+$("finalList").addEventListener("click",e=>{const b=e.target.closest("[data-choose]"); if(!b) return;
+  state.chosen = b.dataset.choose; $("finalists").hidden = true; state.finalists = []; render();
+  $("pickTitle").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"});
+});
+
+/* ===== Compartir y cómo llegar ===== */
+const dirUrl = p => p.mapsUrl || `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}&travelmode=walking`;
+const appleUrl = p => `https://maps.apple.com/?daddr=${p.lat},${p.lon}&dirflg=w`;
+function waUrl(p){
+  const parts = [`¿Vamos a comer aquí? ${p.name}`];
+  const f = shortFacts(p); if(f) parts.push(f);
+  parts.push(`A ${fmtDist(p.dist)} (${walkMin(p.dist)} min a pie)`);
+  parts.push(`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`);
+  if(state.source==="demo") parts.push("(lugar de ejemplo)");
+  parts.push("Encontrado con A Donde Hoy");
+  return "https://wa.me/?text="+encodeURIComponent(parts.join("\n"));
+}
+function shortFacts(p){
+  const b = [];
+  if(p.rating!=null) b.push(`★ ${p.rating.toFixed(1)}`);
+  if(p.priceLevel) b.push(PRICES[p.priceLevel]);
+  if(p.cuisines.length) b.push(p.cuisines[0]); else b.push(TYPES[p.type].label);
+  return b.join(" · ");
+}
+function openHtml(p){
+  if(p.os.open===true) return `<span class="open">Abierto</span>${p.os.until?` hasta las ${p.os.until}`:(p.os.allDay?" 24 h":"")}`;
+  if(p.os.open===false) return `<span class="closed">Cerrado</span>${p.os.opens?` · abre a las ${p.os.opens}`:""}`;
+  return `Horario sin confirmar`;
+}
+function factsHtml(p){
+  const f = [];
+  if(p.rating!=null) f.push(`<span class="stars">★ ${p.rating.toFixed(1)}</span> <span>(${fmtCount(p.ratingCount||0)} reseñas)</span>`);
+  if(p.priceLevel) f.push(`<b>${PRICES[p.priceLevel]}</b>${p.priceText?` · ${esc(p.priceText)} por persona`:""}`);
+  f.push(esc(p.cuisines.length? p.cuisines.join(", ") : TYPES[p.type].label));
+  f.push(openHtml(p));
+  f.push(`<b>${fmtDist(p.dist)}</b> · ${walkMin(p.dist)} min a pie`);
+  return f.map(x=>`<span>${x}</span>`).join("");
+}
+
+/* ===== Dibujo ===== */
+function renderPick(list){
+  $("pickTitle").textContent = state.chosen ? "Elegiste" : mealTitle();
+  if(!list.length){
+    $("hero").innerHTML = `<div class="empty">No hay lugares que cumplan estos filtros${state.openOnly?" y estén abiertos ahora":""}. Prueba con más distancia o quita algún filtro.</div>`;
+    $("alts").innerHTML = ""; return;
+  }
+  let main = list[0];
+  if(state.chosen){ const c = list.find(p=>p.id===state.chosen); if(c) main = c; }
+  const alts = list.filter(p=>p.id!==main.id).slice(0,2);
+  $("hero").innerHTML = `<article class="hero">
+    <h3>${esc(main.name)}</h3>
+    <div class="facts">${factsHtml(main)}</div>
+    <div class="why">${esc(whyLine(main))}</div>
+    <div class="actions">
+      <a class="btn primary" href="${esc(dirUrl(main))}" target="_blank" rel="noopener">Cómo llegar</a>
+      <a class="btn wa" href="${esc(waUrl(main))}" target="_blank" rel="noopener">Compartir por WhatsApp</a>
+      ${main.phone?`<a class="btn" href="tel:${esc(main.phone.replace(/\s/g,""))}">Llamar ${esc(main.phone)}</a>`:""}
+    </div>
+  </article>`;
+  const tags = ["Otra buena opción","También cerca"];
+  $("alts").innerHTML = alts.map((p,i)=>`<button type="button" class="alt" data-choose="${esc(p.id)}">
+    <span class="tag">${tags[i]}</span><strong>${esc(p.name)}</strong>
+    <span>${esc(shortFacts(p))}</span><span>${fmtDist(p.dist)} · ${walkMin(p.dist)} min · ${p.os.open===true?"abierto":p.os.open===false?"cerrado":"horario sin confirmar"}</span></button>`).join("");
+  state.highlight = main.id;
+}
+$("alts").addEventListener("click",e=>{const b=e.target.closest("[data-choose]"); if(!b) return; state.chosen=b.dataset.choose; render();});
+
+function render(){
+  const list = ranked(); const c = state.center; const R = state.radius;
+  renderPick(list);
+  $("count").textContent = list.length ? `${list.length} ${list.length===1?"lugar":"lugares"} a menos de ${fmtDist(R)}${state.source==="demo"?" (ejemplo)":""}, ordenados por distancia` : "";
+  // mapa
+  const ink = css("--ink"), line = css("--line"), muted = css("--muted"), accent = css("--accent"), surf = css("--surface");
+  const k = 95/R, cosLat = Math.cos(c.lat*Math.PI/180);
+  const xy = p => [ (p.lon-c.lon)*111320*cosLat*k, -(p.lat-c.lat)*110540*k ];
+  let svg = `<circle r="95" fill="none" stroke="${line}" stroke-width="1"/><circle r="47.5" fill="none" stroke="${line}" stroke-width="1" stroke-dasharray="2 3"/>`
+    + `<line x1="-95" y1="0" x2="95" y2="0" stroke="${line}" stroke-width=".5"/><line x1="0" y1="-95" x2="0" y2="95" stroke="${line}" stroke-width=".5"/>`
+    + `<text x="0" y="-99" text-anchor="middle" font-size="8" fill="${muted}" font-family="Figtree,sans-serif">N</text>`
+    + `<text x="49" y="-3" font-size="6.5" fill="${muted}" font-family="Figtree,sans-serif">${fmtDist(R/2)}</text>`;
+  const byDist = list.slice().sort((a,b)=>b.dist-a.dist);
+  byDist.forEach(p=>{ const [x,y]=xy(p);
+    svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="${css(TYPES[p.type].color)}" stroke="${surf}" stroke-width="1.2" data-pid="${esc(p.id)}" style="cursor:pointer"><title>${esc(p.name)} · ${fmtDist(p.dist)}</title></circle>`; });
+  const hl = list.find(p=>p.id===state.highlight);
+  if(hl){ const [x,y]=xy(hl); svg += `<line x1="0" y1="0" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${accent}" stroke-width="1.5" stroke-dasharray="3 2"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8" fill="none" stroke="${accent}" stroke-width="2.5"/>`; }
+  svg += `<circle r="6" fill="${ink}"/><circle r="2.4" fill="${css("--bg")}"/>`;
+  $("map").innerHTML = svg;
+  $("scale").textContent = "Borde: "+fmtDist(R);
+  // lista (por distancia)
+  const near = list.slice().sort((a,b)=>a.dist-b.dist);
+  $("list").innerHTML = !near.length ? `<li class="empty">Sin resultados con estos filtros.</li>` : near.map(p=>{
+    const t = TYPES[p.type];
+    const meta = [shortFacts(p), p.street].filter(Boolean).map(esc).join(" · ");
+    return `<li class="card${p.id===state.highlight?" hl":""}" data-id="${esc(p.id)}">
+      <span class="pin" style="background:var(${t.color})"></span>
+      <h3>${esc(p.name)}</h3>
+      <div class="dist">${fmtDist(p.dist)}<small>${fmtWalk(p.dist)}</small></div>
+      <div class="meta">${meta}<br>${openHtml(p)}${p.priceText?` · ${esc(p.priceText)} por persona`:""}</div>
+      <div class="go"><a href="${esc(dirUrl(p))}" target="_blank" rel="noopener">Cómo llegar</a><a href="${esc(appleUrl(p))}" target="_blank" rel="noopener">Apple Maps</a><a href="${esc(waUrl(p))}" target="_blank" rel="noopener">WhatsApp</a>${p.web?`<a href="${esc(p.web)}" target="_blank" rel="noopener">Sitio web</a>`:""}</div>
+    </li>`;
+  }).join("");
+  $("credits").innerHTML = state.source==="google"
+    ? `<span>Calificaciones, precios y horarios: Google Maps.</span>`
+    : state.source==="osm"
+      ? `<span>Datos de lugares: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© colaboradores de OpenStreetMap</a>. Sin calificaciones todavía.</span>`
+      : `<span>Estás viendo lugares, calificaciones y precios inventados como ejemplo.</span>`;
+  $("credits").innerHTML += `<span>Distancias en línea recta; minutos estimados a pie.</span>`;
+}
+$("map").addEventListener("click",e=>{const d=e.target.closest("[data-pid]"); if(!d) return; state.chosen=d.dataset.pid; render();
+  $("pickTitle").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"});});
+$("list").addEventListener("click",e=>{ if(e.target.closest("a")) return; const c=e.target.closest("[data-id]"); if(!c) return; state.chosen=c.dataset.id; render();
+  $("pickTitle").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"});});
+const mq = matchMedia("(prefers-color-scheme: dark)"); mq.addEventListener && mq.addEventListener("change",()=>render());
+new MutationObserver(()=>render()).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+// Expuesto solo para pruebas automáticas.
+window.__adh = {parseHours, openState};
+
+loadDemo(); useGeo(true);
+})();
+</script>
+
+</body>
+</html>
