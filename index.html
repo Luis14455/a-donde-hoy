@@ -236,7 +236,7 @@ function store(k,v){try{ if(v===undefined) return localStorage.getItem(k); local
 
 const state = {center:null, places:[], live:false, source:"demo", radius:1000,
   openOnly:true, topRated:false, prices:new Set([1,2,3,4]), types:new Set(Object.keys(TYPES)),
-  cuisine:"", q:"", highlight:null, chosen:null, finalists:[]};
+  cuisine:"", q:"", highlight:null, chosen:null, finalists:[], googleNote:""};
 const savedR = parseInt(store("adh.radius"),10); if(RADII.includes(savedR)) state.radius = savedR;
 
 /* ===== Utilidades de distancia y formato ===== */
@@ -393,8 +393,9 @@ async function fetchOSM(c){
 async function fetchGoogle(c){
   const url = `${CONFIG.placesEndpoint.replace(/\/$/,"")}/nearby?lat=${c.lat}&lon=${c.lon}&radius=2000`;
   const res = await fetchWithTimeout(url);
-  if(!res.ok) throw new Error("HTTP "+res.status);
-  const j = await res.json();
+  const j = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(j.error||"HTTP "+res.status);
+  if(!Array.isArray(j.places)) throw new Error(j.error||"respuesta sin lugares");
   return j.places;
 }
 async function goLive(c,label){
@@ -403,8 +404,14 @@ async function goLive(c,label){
   try{
     let places, source;
     if(CONFIG.placesEndpoint){
-      try{ places = await fetchGoogle(c); source = "google"; }
-      catch(e){ places = await fetchOSM(c); source = "osm"; }
+      state.googleNote = "";
+      try{
+        places = await fetchGoogle(c); source = "google";
+        if(!places.length){ state.googleNote = "Google no encontró lugares aquí"; throw new Error("vacío"); }
+      }catch(e){
+        if(!state.googleNote) state.googleNote = "Google no respondió ("+String(e.message||e).slice(0,140)+")";
+        places = await fetchOSM(c); source = "osm";
+      }
     } else { places = await fetchOSM(c); source = "osm"; }
     setPlaces(c, places, source);
     setLoc(`<span class="badge live">En vivo</span><span>Cerca de <b>${esc(label)}</b></span>`);
@@ -478,7 +485,7 @@ $("addrForm").addEventListener("submit",e=>{e.preventDefault(); const v=$("addr"
 /* ===== Sorpréndeme: 3 finalistas al azar entre los buenos ===== */
 function drawFinalists(){
   const pool = ranked().slice(0, 15);
-  if(!pool.length){ notice("No hay lugares con estos filtros. Amplía la distancia o quita filtros."); return; }
+  if(!pool.length){ $("finalists").hidden = true; notice("No hay lugares con estos filtros. Amplía la distancia o quita filtros."); return; }
   const prev = new Set(state.finalists.map(p=>p.id));
   let candidates = pool.filter(p=>!prev.has(p.id)); if(candidates.length<3) candidates = pool;
   const picks = [];
@@ -537,7 +544,10 @@ function factsHtml(p){
 function renderPick(list){
   $("pickTitle").textContent = state.chosen ? "Elegiste" : mealTitle();
   if(!list.length){
-    $("hero").innerHTML = `<div class="empty">No hay lugares que cumplan estos filtros${state.openOnly?" y estén abiertos ahora":""}. Prueba con más distancia o quita algún filtro.</div>`;
+    const closedToo = state.openOnly && state.places.some(p=>p.dist<=state.radius && p.os.open===false);
+    $("hero").innerHTML = closedToo
+      ? `<div class="empty">A esta hora no encontramos lugares abiertos a menos de ${fmtDist(state.radius)}. <button type="button" class="btn" id="showClosed">Ver los que están cerrados</button></div>`
+      : `<div class="empty">No hay lugares que cumplan estos filtros${state.openOnly?" y estén abiertos ahora":""}. Prueba con más distancia o quita algún filtro.</div>`;
     $("alts").innerHTML = ""; return;
   }
   let main = list[0];
@@ -560,6 +570,7 @@ function renderPick(list){
   state.highlight = main.id;
 }
 $("alts").addEventListener("click",e=>{const b=e.target.closest("[data-choose]"); if(!b) return; state.chosen=b.dataset.choose; render();});
+$("hero").addEventListener("click",e=>{ if(!e.target.closest("#showClosed")) return; state.openOnly=false; buildChips(); changed(); });
 
 function render(){
   const list = ranked(); const c = state.center; const R = state.radius;
@@ -599,6 +610,7 @@ function render(){
     : state.source==="osm"
       ? `<span>Datos de lugares: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© colaboradores de OpenStreetMap</a>. Sin calificaciones todavía.</span>`
       : `<span>Estás viendo lugares, calificaciones y precios inventados como ejemplo.</span>`;
+  if(state.source==="osm" && state.googleNote) $("credits").innerHTML += `<span>${esc(state.googleNote)}; usamos OpenStreetMap.</span>`;
   $("credits").innerHTML += `<span>Distancias en línea recta; minutos estimados a pie.</span>`;
 }
 $("map").addEventListener("click",e=>{const d=e.target.closest("[data-pid]"); if(!d) return; state.chosen=d.dataset.pid; render();
